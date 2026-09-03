@@ -176,10 +176,11 @@ public class PacketValidateProcessor {
 	@Value("${mosip.registration.processor.datetime.pattern}")
 	private String dateformat;
 
-	public MessageDTO process(MessageDTO object, String stageName) {
+public MessageDTO process(MessageDTO object, String stageName) {
 		TrimExceptionMessage trimMessage = new TrimExceptionMessage();
 		LogDescription description = new LogDescription();
 		PacketValidationDto packetValidationDto = new PacketValidationDto();
+        boolean isPacketValid = false; 
 		String registrationId = null;
 		InternalRegistrationStatusDto registrationStatusDto = new InternalRegistrationStatusDto();
 		try {
@@ -228,6 +229,7 @@ public class PacketValidateProcessor {
 							packetValidationDto);
 
 					packetValidationDto.setTransactionSuccessful(true);
+                     isPacketValid = true;
 					description.setMessage(
 							PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getMessage() + " -- " + registrationId);
 					description.setCode(PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getCode());
@@ -442,10 +444,14 @@ public class PacketValidateProcessor {
 			object.setRid(registrationStatusDto.getRegistrationId());
 			/** Module-Id can be Both Success/Error code */
 			String moduleId = packetValidationDto.isTransactionSuccessful()
-					? PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getCode()
-					: description.getCode();
-			String moduleName = ModuleName.PACKET_VALIDATOR.toString();
-			registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+      ? PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getCode()
+      : description.getCode();
+String moduleName = ModuleName.PACKET_VALIDATOR.toString();
+if (isPacketValid) {
+   registrationStatusService.updateRegistrationStatusForWorkflowEngine(registrationStatusDto, moduleId, moduleName);
+} else {
+   registrationStatusService.updateRegistrationStatus(registrationStatusDto, moduleId, moduleName);
+}
 			if (packetValidationDto.isTransactionSuccessful())
 				description.setMessage(PlatformSuccessMessages.RPR_PKR_PACKET_VALIDATE.getMessage());
 			String eventId = packetValidationDto.isTransactionSuccessful() ? EventId.RPR_402.toString()
